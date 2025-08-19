@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mars Explorer - Interactive 3D Experience</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: 'Inter', sans-serif;
+      }
+      .orbitron {
+        font-family: 'Orbitron', monospace;
+      }
+      canvas {
+        display: block;
+      }
+      .description-panel {
+        transform: translateY(100%);
+        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .description-panel.active {
+        transform: translateY(0);
+      }
+      .glass-morphism {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      .mars-glow {
+        box-shadow: 0 0 50px rgba(205, 92, 92, 0.3);
+      }
+      .loading-screen {
+        background: linear-gradient(
+          135deg,
+          #0c0c0c 0%,
+          #1a1a2e 50%,
+          #16213e 100%
+        );
+      }
+      @keyframes rotate {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .rotate-slow {
+        animation: rotate 20s linear infinite;
+      }
+      .fade-in {
+        animation: fadeIn 0.6s ease-in-out;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-black">
+    <!-- Loading Screen -->
+    <div
+      id="loadingScreen"
+      class="loading-screen fixed inset-0 flex items-center justify-center z-50"
+    >
+      <div class="text-center">
+        <div
+          class="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"
+        ></div>
+        <h2 class="orbitron text-white text-xl font-bold">Loading Mars...</h2>
+        <p class="text-gray-400 mt-2">
+          Preparing your journey to the Red Planet
+        </p>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div id="instructions" class="fixed top-6 left-6 z-40 text-white">
+      <div class="glass-morphism rounded-lg p-4 max-w-sm">
+        <h3 class="orbitron text-lg font-bold mb-2 text-red-400">
+          Mars Explorer
+        </h3>
+        <p class="text-sm text-gray-300 mb-2">
+          Double-click on Mars to explore detailed information
+        </p>
+        <p class="text-xs text-gray-400">
+          Move mouse to rotate • Scroll to zoom
+        </p>
+      </div>
+    </div>
+
+    <!-- Close Button (hidden initially) -->
+    <button
+      id="closeBtn"
+      class="fixed top-6 right-6 z-50 glass-morphism rounded-full p-3 text-white hover:bg-white hover:bg-opacity-20 transition-all duration-300 hidden"
+    >
+      <svg
+        class="w-6 h-6"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M6 18L18 6M6 6l12 12"
+        ></path>
+      </svg>
+    </button>
+
+    <!-- 3D Canvas -->
+    <canvas id="canvas"></canvas>
+
+    <!-- Description Panel -->
+    <div
+      id="descriptionPanel"
+      class="description-panel fixed inset-0 z-30 bg-gradient-to-br from-gray-900 via-red-950 to-black overflow-y-auto"
+    >
+      <div class="min-h-screen p-6 lg:p-12">
+        <div class="max-w-7xl mx-auto">
+          <!-- Header Section -->
+          <div class="grid lg:grid-cols-3 gap-8 mb-12">
+            <div class="lg:col-span-2">
+              <h1
+                class="orbitron text-4xl lg:text-6xl font-black text-white mb-6 leading-tight"
+              >
+                MARS
+                <span
+                  class="block text-2xl lg:text-3xl text-red-400 font-normal"
+                  >The Red Planet</span
+                >
+              </h1>
+              <p class="text-xl lg:text-2xl text-gray-300 leading-relaxed mb-8">
+                Mars, the fourth planet from the Sun, is a terrestrial planet
+                with a thin atmosphere, having surface features reminiscent both
+                of the impact craters of the Moon and the valleys, deserts and
+                polar ice caps of Earth.
+              </p>
+              <div class="grid sm:grid-cols-2 gap-6">
+                <div class="glass-morphism rounded-lg p-4">
+                  <h3 class="orbitron text-red-400 font-bold mb-2">
+                    Distance from Sun
+                  </h3>
+                  <p class="text-2xl font-bold text-white">227.9 Million km</p>
+                </div>
+                <div class="glass-morphism rounded-lg p-4">
+                  <h3 class="orbitron text-red-400 font-bold mb-2">
+                    Day Length
+                  </h3>
+                  <p class="text-2xl font-bold text-white">24.6 Earth hours</p>
+                </div>
+              </div>
+            </div>
+            <div class="flex justify-center lg:justify-end">
+              <div class="relative">
+                <div
+                  id="miniMars"
+                  class="w-48 h-48 lg:w-64 lg:h-64 mars-glow rounded-full"
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Image Gallery -->
+          <div class="mb-12">
+            <h2 class="orbitron text-3xl font-bold text-white mb-8">
+              Surface Features
+            </h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div
+                class="glass-morphism rounded-lg overflow-hidden hover:scale-105 transition-transform duration-300 fade-in"
+              >
+                <img
+                  src="assets/martian-terrain.png"
+                  alt="Mars Surface"
+                  class="w-full h-48 object-cover"
+                />
+                <div class="p-4">
+                  <h3 class="orbitron font-bold text-white mb-2">
+                    Martian Terrain
+                  </h3>
+                  <p class="text-gray-300 text-sm">
+                    Vast plains and ancient impact craters
+                  </p>
+                </div>
+              </div>
+              <div
+                class="glass-morphism rounded-lg overflow-hidden hover:scale-105 transition-transform duration-300 fade-in"
+              >
+                <img
+                  src="assets/polar-mars.png"
+                  alt="Mars Polar Caps"
+                  class="w-full h-48 object-cover"
+                />
+                <div class="p-4">
+                  <h3 class="orbitron font-bold text-white mb-2">
+                    Polar Ice Caps
+                  </h3>
+                  <p class="text-gray-300 text-sm">
+                    Frozen water and carbon dioxide
+                  </p>
+                </div>
+              </div>
+              <div
+                class="glass-morphism rounded-lg overflow-hidden hover:scale-105 transition-transform duration-300 fade-in"
+              >
+                <img
+                  src="assets/martian-sky.png"
+                  alt="Mars Night Sky"
+                  class="w-full h-48 object-cover"
+                />
+                <div class="p-4">
+                  <h3 class="orbitron font-bold text-white mb-2">
+                    Martian Sky
+                  </h3>
+                  <p class="text-gray-300 text-sm">
+                    Thin atmosphere creates unique sunsets
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Information Cards -->
+          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            <div
+              class="glass-morphism rounded-lg p-6 hover:bg-opacity-20 transition-all duration-300 fade-in"
+            >
+              <div
+                class="w-12 h-12 bg-red-500 rounded-lg flex items-center justify-center mb-4"
+              >
+                <svg
+                  class="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945"
+                  ></path>
+                </svg>
+              </div>
+              <h3 class="orbitron text-xl font-bold text-white mb-3">
+                Atmosphere
+              </h3>
+              <p class="text-gray-300">
+                Thin atmosphere composed primarily of carbon dioxide with traces
+                of nitrogen and argon.
+              </p>
+            </div>
+            <div
+              class="glass-morphism rounded-lg p-6 hover:bg-opacity-20 transition-all duration-300 fade-in"
+            >
+              <div
+                class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mb-4"
+              >
+                <svg
+                  class="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  ></path>
+                </svg>
+              </div>
+              <h3 class="orbitron text-xl font-bold text-white mb-3">
+                Climate
+              </h3>
+              <p class="text-gray-300">
+                Cold desert climate with temperatures ranging from -195°F to
+                70°F (-125°C to 20°C).
+              </p>
+            </div>
+            <div
+              class="glass-morphism rounded-lg p-6 hover:bg-opacity-20 transition-all duration-300 fade-in"
+            >
+              <div
+                class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center mb-4"
+              >
+                <svg
+                  class="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  ></path>
+                </svg>
+              </div>
+              <h3 class="orbitron text-xl font-bold text-white mb-3">
+                Exploration
+              </h3>
+              <p class="text-gray-300">
+                Home to multiple rovers and landers, with ongoing missions
+                searching for signs of past life.
+              </p>
+            </div>
+          </div>
+
+          <!-- Detailed Description -->
+          <div class="glass-morphism rounded-lg p-8">
+            <h2 class="orbitron text-3xl font-bold text-white mb-6">
+              The Future of Mars
+            </h2>
+            <div class="grid lg:grid-cols-2 gap-8">
+              <div>
+                <p class="text-gray-300 mb-6 leading-relaxed">
+                  Mars represents humanity's next frontier. With its 24.6-hour
+                  day cycle and seasonal variations similar to Earth, it offers
+                  the most Earth-like environment in our solar system. Current
+                  missions are actively searching for signs of past microbial
+                  life and assessing the planet's potential for future human
+                  colonization.
+                </p>
+                <p class="text-gray-300 leading-relaxed">
+                  The presence of water ice at the poles and possibly
+                  underground, combined with the planet's mineral resources,
+                  makes Mars a compelling target for establishing a sustainable
+                  human presence beyond Earth. Advanced terraforming concepts
+                  propose gradually thickening the atmosphere and warming the
+                  planet to make it more habitable.
+                </p>
+              </div>
+              <div class="space-y-4">
+                <div class="flex items-center space-x-3">
+                  <div class="w-2 h-2 bg-red-400 rounded-full"></div>
+                  <span class="text-gray-300"
+                    >Ongoing rover missions: Perseverance & Curiosity</span
+                  >
+                </div>
+
+                <div class="flex items-center space-x-3">
+                  <div class="w-2 h-2 bg-red-400 rounded-full"></div>
+                  <span class="text-gray-300"
+                    >Potential for terraforming in the far future</span
+                  >
+                </div>
+                <div class="flex items-center space-x-3">
+                  <div class="w-2 h-2 bg-red-400 rounded-full"></div>
+                  <span class="text-gray-300"
+                    >Rich in minerals and water resources</span
+                  >
+                </div>
+                <div class="flex items-center space-x-3">
+                  <div class="w-2 h-2 bg-red-400 rounded-full"></div>
+                  <span class="text-gray-300">Extreme temperature swings</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                  <div class="w-2 h-2 bg-red-400 rounded-full"></div>
+                  <span class="text-gray-300"
+                    >Ancient riverbeds and volcanoes
+                  </span>
+                </div>
+                <div class="flex items-center space-x-3">
+                  <div class="w-2 h-2 bg-red-400 rounded-full"></div>
+                  <span class="text-gray-300">Water ice below surface</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                  <div class="w-2 h-2 bg-red-400 rounded-full"></div>
+                  <span class="text-gray-300">Mineral-rich terrain </span>
+                </div>
+                <div class="flex items-center space-x-3">
+                  <div class="w-2 h-2 bg-red-400 rounded-full"></div>
+                  <span class="text-gray-300"
+                    >Potential for past microbial life
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
