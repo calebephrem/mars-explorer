@@ -128,7 +128,7 @@ async function createMars() {
   const textureLoader = new THREE.TextureLoader();
 
   const marsMaterial = new THREE.MeshStandardMaterial({ color: 0xffa500 });
-  const marsMap = textureLoader.load('../assets/mars-map.png');
+  const marsMap = textureLoader.load('/assets/mars-map.png');
 
   marsMaterial.map = marsMap;
 
@@ -190,7 +190,7 @@ function createMiniMars() {
   });
 
   const miniMarsTexture = new THREE.TextureLoader().load(
-    '../assets/minimars-map.png'
+    '/assets/minimars-map.png'
   );
   miniMarsMaterial.map = miniMarsTexture;
 
